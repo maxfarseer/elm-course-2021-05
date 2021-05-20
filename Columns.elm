@@ -104,54 +104,19 @@ isOccupiedByEnemy ( fromX, fromY ) ( toX, toY ) field =
         toColorOrToEmpty =
             getXY toX toY field
     in
-    case fromColorOrFromEmpty of
-        Empty ->
-            -- лишний кейс, empty ходить не может
+    case (fromColorOrFromEmpty, toColorOrToEmpty) of
+        ( Empty, Empty ) ->
             False
+        ( Empty, Occupied _ _) ->
+            False
+        ( Occupied _ _, Empty ) ->
+            False
+        (Occupied playerFrom _, Occupied playerTo _) ->
+            if (playerFrom == playerTo) then
+                False
+            else
+                True
 
-        Occupied fromPlayer _ ->
-            case fromPlayer of
-                Red ->
-                    let
-                        result =
-                            case toColorOrToEmpty of
-                                Empty ->
-                                    -- на пустое место можно сходить всегда
-                                    False
-
-                                Occupied toPlayer _ ->
-                                    case toPlayer of
-                                        Red ->
-                                            -- Red идет на клетку занятую Red - можно
-                                            -- TODO: d4 увеличить
-                                            False
-
-                                        Blue ->
-                                            -- клетка занята противником
-                                            True
-                    in
-                    result
-
-                Blue ->
-                    let
-                        result =
-                            case toColorOrToEmpty of
-                                Empty ->
-                                    -- на пустое место можно сходить всегда
-                                    False
-
-                                Occupied toPlayer _ ->
-                                    case toPlayer of
-                                        Red ->
-                                            -- клетка занята противником
-                                            True
-
-                                        Blue ->
-                                            -- Blue идет на клетку занятую Blue - можно
-                                            -- TODO: d4 увеличить
-                                            False
-                    in
-                    result
 
 
 {-| можно ли и нужно ли записать короче?
