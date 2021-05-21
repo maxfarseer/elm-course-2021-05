@@ -38,153 +38,82 @@ main =
 
 
 move : ( D4, D4 ) -> ( D4, D4 ) -> Field -> Maybe Field
-move from to field =
+move (x1, y1) (x2, y2) field =
     let
-        ( fromX, fromY ) =
-            from
+        isReachable : Bool
+        isReachable = (near x1 x2 && y1 == y2) || (x1 == x2 && near y1 y2)
 
-        ( toX, toY ) =
-            to
+        near : D4 -> D4 -> Bool
+        near a b =
+          add a V1 == Just b || add b V1 == Just a
+
 
         cell : Cell
         cell =
-            getXY fromX fromY field
-
-        putFishkaOrEmpty =
-            case cell of
-                Empty ->
-                    -- сходило empty, в будущем не валидно или не важно
-                    updateXY (always Empty) fromX fromY
-
-                Occupied player d4 ->
-                    updateXY (always (Occupied player d4)) toX toY
-    in
-    if validateXY from to field then
-        let
-            _ =
-                Debug.log "Ход сделан: " ( from, to )
-        in
-        field
-            |> putEmpty from
-            |> putFishkaOrEmpty
-            |> Just
-
-    else
-        let
-            _ =
-                Debug.log "Ход НЕ сделан: " ( from, to )
-        in
-        Nothing
+            getXY x1 y1 field
 
 
-validateXY : ( D4, D4 ) -> ( D4, D4 ) -> Field -> Bool
-validateXY from to field =
-    let
-        ( fromX, fromY ) =
-            from
-
-        ( toX, toY ) =
-            to
-    in
-    (validate fromX toX && validate fromY toY)
-        && not (isSameCell from to)
-        && not (isOccupiedByEnemy from to field)
-        && not (isDiagonalMove from to)
-
-
-isSameCell : ( D4, D4 ) -> ( D4, D4 ) -> Bool
-isSameCell from to =
-    from == to
-
-
-isDiagonalMove : (D4, D4) -> (D4, D4) -> Bool
-isDiagonalMove (fromX, fromY) (toX, toY) =
-    fromX /= toX && fromY /= toY
-
-isOccupiedByEnemy : ( D4, D4 ) -> ( D4, D4 ) -> Field -> Bool
-isOccupiedByEnemy ( fromX, fromY ) ( toX, toY ) field =
-    let
-        fromColorOrFromEmpty =
-            getXY fromX fromY field
-
-        toColorOrToEmpty =
-            getXY toX toY field
-    in
-    case (fromColorOrFromEmpty, toColorOrToEmpty) of
-        ( Empty, Empty ) ->
-            False
-        ( Empty, Occupied _ _) ->
-            False
-        ( Occupied _ _, Empty ) ->
-            False
-        (Occupied playerFrom _, Occupied playerTo _) ->
-            if (playerFrom == playerTo) then
-                False
+        nextField =
+            if not isReachable then
+                Nothing
             else
-                True
+                case cell of
+                    Empty ->
+                        Nothing
+
+                    Occupied player d4 ->
+                        updateXY (always (Occupied player d4)) x2 y2 field
+                        |> updateXY (always Empty) x1 y1
+                        |> Just
+
+    in
+    nextField
 
 
-
-{-| можно ли и нужно ли записать короче?
-
-  - проверяем что мы сделали шаг на 0 или 1 клетку
-
--}
-validate : D4 -> D4 -> Bool
-validate from to =
-    case from of
+add : D4 -> D4 -> Maybe D4
+add a b =
+    case a of
         V1 ->
-            case to of
+            case b of
                 V1 ->
-                    True
+                    Just V2
 
                 V2 ->
-                    True
+                    Just V3
 
                 V3 ->
-                    False
+                    Just V4
 
                 V4 ->
-                    False
+                    Nothing
 
         V2 ->
-            case to of
+            case b of
                 V1 ->
-                    True
+                    Just V3
 
                 V2 ->
-                    True
+                    Just V4
 
                 V3 ->
-                    True
+                    Nothing
 
                 V4 ->
-                    False
+                    Nothing
 
         V3 ->
-            case to of
+            case b of
                 V1 ->
-                    False
+                    Just V4
 
                 V2 ->
-                    True
+                    Nothing
 
                 V3 ->
-                    True
+                    Nothing
 
                 V4 ->
-                    True
+                    Nothing
 
         V4 ->
-            case to of
-                V1 ->
-                    False
-
-                V2 ->
-                    False
-
-                V3 ->
-                    True
-
-                V4 ->
-                    True
+            Nothing
