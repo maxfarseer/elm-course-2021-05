@@ -18,21 +18,26 @@ put p v ( x, y ) =
 main : Html msg
 main =
     let
-        example =
+
+        startField =
             empty
                 |> put Red V1 ( V1, V4 )
-                |> put Blue V1 ( V1, V3 )
-                |> move ( V1, V3 ) ( V2, V3 )
+                |> put Blue V1 ( V3, V3 )
+
+        afterMove =
+            startField
                 |> move ( V1, V4 ) ( V2, V4 )
+                |> Maybe.andThen (move ( V2, V4 ) ( V3, V4 ))
+                |> Maybe.andThen (move ( V3, V4 ) ( V3, V3 )) -- этот ход не выполнится, т.к синяя стоит, дальше не пойдет
+                |> Maybe.andThen (move ( V3, V3 ) ( V3, V2 ))
+                |> Maybe.andThen (move ( V3, V2 ) ( V3, V1 ))
+
     in
-    Columns.Render.svg example
+    Columns.Render.svg (Maybe.withDefault startField afterMove)
 
 
 
--- move : ( D4, D4 ) -> ( D4, D4 ) -> Field -> Maybe Field пока что без maybe
-
-
-move : ( D4, D4 ) -> ( D4, D4 ) -> Field -> Field
+move : ( D4, D4 ) -> ( D4, D4 ) -> Field -> Maybe Field
 move from to field =
     let
         ( fromX, fromY ) =
@@ -62,13 +67,14 @@ move from to field =
         field
             |> putEmpty from
             |> putFishkaOrEmpty
+            |> Just
 
     else
         let
             _ =
                 Debug.log "Ход НЕ сделан: " ( from, to )
         in
-        field
+        Nothing
 
 
 validateXY : ( D4, D4 ) -> ( D4, D4 ) -> Field -> Bool
