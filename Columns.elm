@@ -2,7 +2,7 @@ module Columns exposing (main)
 
 import Columns.Field exposing (Cell(..), Field, Player(..), empty, getXY, updateXY)
 import Columns.Render
-import Columns.Vec4 exposing (D4(..), Vec4)
+import Columns.Vec4 exposing (D4(..), Vec4, add)
 import Html exposing (Html)
 
 
@@ -22,15 +22,16 @@ main =
         startField =
             empty
                 |> put Red V1 ( V1, V4 )
+                |> put Red V1 ( V2, V4 )
                 |> put Blue V1 ( V3, V3 )
 
         afterMove =
             startField
                 |> move ( V1, V4 ) ( V2, V4 )
                 |> Maybe.andThen (move ( V2, V4 ) ( V3, V4 ))
-                |> Maybe.andThen (move ( V3, V4 ) ( V3, V3 )) -- этот ход не выполнится, т.к синяя стоит, дальше не пойдет
-                |> Maybe.andThen (move ( V3, V3 ) ( V3, V2 ))
-                |> Maybe.andThen (move ( V3, V2 ) ( V3, V1 ))
+                -- |> Maybe.andThen (move ( V3, V4 ) ( V3, V3 )) -- этот ход не выполнится, т.к синяя стоит, дальше не пойдет
+                -- |> Maybe.andThen (move ( V3, V3 ) ( V3, V2 ))
+                -- |> Maybe.andThen (move ( V3, V2 ) ( V3, V1 ))
 
     in
     Columns.Render.svg (Maybe.withDefault startField afterMove)
@@ -48,72 +49,47 @@ move (x1, y1) (x2, y2) field =
           add a V1 == Just b || add b V1 == Just a
 
 
-        cell : Cell
-        cell =
+        cellFrom : Cell
+        cellFrom =
             getXY x1 y1 field
+
+        cellTo : Cell
+        cellTo =
+            getXY x2 y2 field
 
 
         nextField =
             if not isReachable then
                 Nothing
             else
-                case cell of
+                case cellFrom of
                     Empty ->
                         Nothing
 
-                    Occupied player d4 ->
-                        updateXY (always (Occupied player d4)) x2 y2 field
-                        |> updateXY (always Empty) x1 y1
-                        |> Just
+                    Occupied player1 d4_1 ->
+                        case cellTo of
+                            Empty ->
+                                updateXY (always (Occupied player1 d4_1)) x2 y2 field
+                                    |> updateXY (always Empty) x1 y1
+                                    |> Just
+
+                            Occupied player2 d4_2 ->
+                                if (player1 == player2) then
+                                    let newHeight = add d4_1 d4_2
+                                    in
+                                    case newHeight of
+                                        Just d4 ->
+                                            updateXY (always (Occupied player1 d4)) x2 y2 field
+                                                |> updateXY (always Empty) x1 y1
+                                                |> Just
+
+
+                                        Nothing ->
+                                             Nothing
+                                else
+                                    Nothing
+
+
 
     in
     nextField
-
-
-add : D4 -> D4 -> Maybe D4
-add a b =
-    case a of
-        V1 ->
-            case b of
-                V1 ->
-                    Just V2
-
-                V2 ->
-                    Just V3
-
-                V3 ->
-                    Just V4
-
-                V4 ->
-                    Nothing
-
-        V2 ->
-            case b of
-                V1 ->
-                    Just V3
-
-                V2 ->
-                    Just V4
-
-                V3 ->
-                    Nothing
-
-                V4 ->
-                    Nothing
-
-        V3 ->
-            case b of
-                V1 ->
-                    Just V4
-
-                V2 ->
-                    Nothing
-
-                V3 ->
-                    Nothing
-
-                V4 ->
-                    Nothing
-
-        V4 ->
-            Nothing
