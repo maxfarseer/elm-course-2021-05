@@ -1,6 +1,7 @@
 module Columns.Vec4 exposing
     ( Vec4(..)
     , D4(..)
+    , add
     , fill
     , map
     , toList
@@ -37,3 +38,51 @@ update f pos vec =
         (V2, Vec4 a b c d) -> Vec4 a (f b) c d
         (V3, Vec4 a b c d) -> Vec4 a b (f c) d
         (V4, Vec4 a b c d) -> Vec4 a b c (f d)
+
+add : D4 -> D4 -> Maybe D4
+add a b =
+    case a of
+        V1 ->
+            case b of
+                V1 ->
+                    Just V2
+
+                V2 ->
+                    Just V3
+
+                V3 ->
+                    Just V4
+
+                V4 ->
+                    Nothing
+
+        V2 ->
+            case b of
+                V1 ->
+                    Just V3
+
+                V2 ->
+                    Just V4
+
+                V3 ->
+                    Nothing
+
+                V4 ->
+                    Nothing
+
+        V3 ->
+            case b of
+                V1 ->
+                    Just V4
+
+                V2 ->
+                    Nothing
+
+                V3 ->
+                    Nothing
+
+                V4 ->
+                    Nothing
+
+        V4 ->
+            Nothing

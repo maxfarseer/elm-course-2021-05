@@ -1,23 +1,95 @@
 module Columns exposing (main)
 
+import Columns.Field exposing (Cell(..), Field, Player(..), empty, getXY, updateXY)
+import Columns.Render
+import Columns.Vec4 exposing (D4(..), Vec4, add)
 import Html exposing (Html)
 
-import Columns.Field exposing (Player(..), Cell(..), empty, updateXY)
-import Columns.Vec4 exposing (D4(..))
-import Columns.Render
+
+putEmpty : ( D4, D4 ) -> Vec4 (Vec4 Cell) -> Vec4 (Vec4 Cell)
+putEmpty ( x, y ) =
+    updateXY (always Empty) x y
+
+
+put p v ( x, y ) =
+    updateXY (always (Occupied p v)) x y
+
 
 main : Html msg
 main =
     let
-        put p v (x, y) = updateXY (always (Occupied p v)) x y
-        example =
+
+        startField =
             empty
-                |> put Blue V1 (V1, V1)
-                |> put Blue V3 (V2, V1)
-                |> put Blue V2 (V3, V1)
-                |> put Blue V4 (V4, V1)
-                |> put Red V4 (V1, V4)
-                |> put Red V2 (V2, V4)
-                |> put Red V3 (V3, V4)
-                |> put Red V1 (V4, V4)
-    in Columns.Render.svg example
+                |> put Red V1 ( V1, V4 )
+                |> put Red V1 ( V2, V4 )
+                |> put Blue V1 ( V3, V3 )
+
+        afterMove =
+            startField
+                |> move ( V1, V4 ) ( V2, V4 )
+                |> Maybe.andThen (move ( V2, V4 ) ( V3, V4 ))
+                -- |> Maybe.andThen (move ( V3, V4 ) ( V3, V3 )) -- этот ход не выполнится, т.к синяя стоит, дальше не пойдет
+                -- |> Maybe.andThen (move ( V3, V3 ) ( V3, V2 ))
+                -- |> Maybe.andThen (move ( V3, V2 ) ( V3, V1 ))
+
+    in
+    Columns.Render.svg (Maybe.withDefault startField afterMove)
+
+
+
+move : ( D4, D4 ) -> ( D4, D4 ) -> Field -> Maybe Field
+move (x1, y1) (x2, y2) field =
+    let
+        isReachable : Bool
+        isReachable = (near x1 x2 && y1 == y2) || (x1 == x2 && near y1 y2)
+
+        near : D4 -> D4 -> Bool
+        near a b =
+          add a V1 == Just b || add b V1 == Just a
+
+
+        cellFrom : Cell
+        cellFrom =
+            getXY x1 y1 field
+
+        cellTo : Cell
+        cellTo =
+            getXY x2 y2 field
+
+
+        nextField =
+            if not isReachable then
+                Nothing
+            else
+                case cellFrom of
+                    Empty ->
+                        Nothing
+
+                    Occupied player1 d4_1 ->
+                        case cellTo of
+                            Empty ->
+                                updateXY (always (Occupied player1 d4_1)) x2 y2 field
+                                    |> updateXY (always Empty) x1 y1
+                                    |> Just
+
+                            Occupied player2 d4_2 ->
+                                if (player1 == player2) then
+                                    let newHeight = add d4_1 d4_2
+                                    in
+                                    case newHeight of
+                                        Just d4 ->
+                                            updateXY (always (Occupied player1 d4)) x2 y2 field
+                                                |> updateXY (always Empty) x1 y1
+                                                |> Just
+
+
+                                        Nothing ->
+                                             Nothing
+                                else
+                                    Nothing
+
+
+
+    in
+    nextField
